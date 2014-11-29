@@ -88,6 +88,10 @@
         model.set("price", msg.price);
         model.set("history", msg.history);
       });
+      socket.on('delete', function(msg) {
+        var model = listOfStocks.findWhere({symbol: msg.symbol});
+        listOfStocks.remove(model);
+      });
     });
     </script>
   </body>

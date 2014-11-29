@@ -18,6 +18,7 @@ app.get('/add/:symbol', function(req, res){
 app.get('/delete/:symbol', function(req, res){
   db.stocks.remove({symbol: req.params.symbol});
   db.stockHistory.remove({symbol: req.params.symbol});
+  io.emit('delete', {symbol: req.params.symbol});
   res.send(req.params.symbol + " removed.");
 });
 
