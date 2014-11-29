@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Stock</title>
+  </head>
+  <body>
+    <input type="text" id="symbol"><button id="add">Add</button>
+    <script id="table-row-template" type="text/template">
+      <td>
+        <div>Symbol:<br>Price:<br>Price History:<br>Delete:</div>
+      </td>
+      <td>
+        <div>
+          <%= symbol %><br>
+          <%= price %><br>
+          <%= history %><br>
+          <button type="delete" style="height:1px">delete</button>
+        </div>
+      </td>
+    </script>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="http://code.jquery.com/jquery-2.1.1.js"></script>
+    <script src="http://jashkenas.github.io/underscore/underscore-min.js"></script>
+    <script src="http://jashkenas.github.io/backbone/backbone-min.js"></script>
+    <script src="http://marionettejs.com/downloads/backbone.marionette.min.js"></script>
+    <script>
+    $(function(){
+      $("#add").click(function() {
+        var s = $("#symbol").val();
+        $.get("add/" + s);
+        $("#symbol").val("");
+      });
+      var stockModel = Backbone.Model.extend({
+        default: {
+          symbol: "default",
+          price: 0
+        }
+      });
+
+      var stockView = Backbone.Marionette.ItemView.extend({
+        tagName: 'tr',
+        template: "#table-row-template",
+        modelEvents: {
+          'change': 'modelChanged'
+        },
+        events: {
+          "click button[type='delete']": "delete"
+        },
+        modelChanged: function() {
+          this.render();
+        },
+        delete: function() {
+          $.get("delete/" + this.model.get("symbol"));
+          listOfStocks.remove(this.model);
+        }
+      });
+
+      var stockCollection = Backbone.Collection.extend({
+        model: stockModel
+      });
+
+      var listOfStocks = new stockCollection();
+
+      var AppView = Marionette.CollectionView.extend({
+        initialize: function () {
+        },
+        tagName:'table',
+        childView: stockView,
+        onRender: function() {
+          $('body').append(this.$el);
+        }
+      });
+      var App = new AppView({
+        collection: listOfStocks,
+      });
+      App.render();
+      var socket = io();
+      socket.on('message', function(msg){
+        var model = listOfStocks.findWhere({symbol: msg.symbol});
+        if(typeof model === "undefined") {
+          model = new stockModel({
+            symbol: msg.symbol,
+            price: msg.price,
+            history: msg.history
+          })
+          listOfStocks.add(model);
+        }
+        model.set("price", msg.price);
+        model.set("history", msg.history);
+      });
+    });
+    </script>
+  </body>
+</html>
